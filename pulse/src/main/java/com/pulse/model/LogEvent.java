@@ -1,19 +1,36 @@
 package com.pulse.model;
 
+import jakarta.persistence.*;
+
 import java.time.Instant;
 
+@Entity
+@Table(name = "logs")
 public class LogEvent {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String service;
+
+    @Column(nullable = false)
     private String level;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
+
     private Long latencyMs;
+
+    @Column(nullable = false)
     private Instant timestamp;
 
     public LogEvent() {
     }
 
-    public LogEvent(Long id,
+    public LogEvent(
+            Long id,
             String service,
             String level,
             String message,
