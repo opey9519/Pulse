@@ -40,10 +40,10 @@ HTTP POST /api/logs
 
 ## Endpoints
 
-| Method | Path           | Description                                        |
-| ------ | -------------- | -------------------------------------------------- |
-| GET    | `/api/health`  | Returns `"Pulse is running"`                       |
-| POST   | `/api/logs`    | Accepts a `LogEvent`, publishes it to `pulse-logs` |
+| Method | Path          | Description                                        |
+| ------ | ------------- | -------------------------------------------------- |
+| GET    | `/api/health` | Returns `"Pulse is running"`                       |
+| POST   | `/api/logs`   | Accepts a `LogEvent`, publishes it to `pulse-logs` |
 
 ### Example request
 
@@ -128,10 +128,10 @@ Infrastructure is defined in `docker-compose.yml`:
 
 ## Data model
 
-| Entity       | Table     | Notes                                                     |
-| ------------ | --------- | --------------------------------------------------------- |
-| `LogEvent`   | `logs`    | ERROR events saved by `ErrorConsumer` (`message` is TEXT) |
-| `LogMetric`  | `metrics` | Latency snapshots saved by `MetricsConsumer` every 100    |
+| Entity      | Table     | Notes                                                     |
+| ----------- | --------- | --------------------------------------------------------- |
+| `LogEvent`  | `logs`    | ERROR events saved by `ErrorConsumer` (`message` is TEXT) |
+| `LogMetric` | `metrics` | Latency snapshots saved by `MetricsConsumer` every 100    |
 
 ## Project structure
 
