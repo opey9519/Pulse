@@ -2,11 +2,15 @@ package com.pulse.consumer;
 
 import com.pulse.model.LogEvent;
 import com.pulse.repository.LogRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 @Service
 public class ErrorConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(ErrorConsumer.class);
 
     private final LogRepository logRepository;
 
@@ -19,13 +23,11 @@ public class ErrorConsumer {
 
         if ("ERROR".equalsIgnoreCase(logEvent.getLevel())) {
 
-            System.out.println("Processing ERROR event:");
-            System.out.println(logEvent.getMessage());
+            log.info("Processing ERROR event: {}", logEvent.getMessage());
 
             logRepository.save(logEvent);
 
-            System.out.println(
-                    "ERROR event saved to PostgreSQL.");
+            log.info("ERROR event saved to PostgreSQL.");
         }
     }
 }

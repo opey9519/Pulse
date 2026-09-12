@@ -67,9 +67,9 @@ curl -X POST http://localhost:8080/api/logs \
    `pulse-logs` topic.
 2. **ErrorConsumer** keeps only `level=ERROR` events and saves them to the
    `logs` table.
-3. **MetricsConsumer** accumulates `latencyMs` values and, every 100 events,
-   writes a latency snapshot to the `metrics` table (average, min, max, and
-   P50 / P95 / P99) as well as printing it to the console.
+3. **MetricsConsumer** accumulates `latencyMs` values in `LatencyMetricService`
+   and, every 100 events, writes a latency snapshot to the `metrics` table
+   (average, min, max, and P50 / P95 / P99) as well as printing it to the console.
 
 ## Getting started
 
@@ -148,7 +148,7 @@ pulse/
     │   │   ├── controller/{LogController,HealthController}.java
     │   │   ├── model/{LogEvent,LogMetric}.java
     │   │   ├── repository/{LogRepository,LogMetricRepository}.java
-    │   │   └── service/LogProducer.java
+    │   │   └── service/{LogProducer,LatencyMetricService}.java
     │   └── resources/application.properties
     └── test/java/com/pulse/PulseApplicationTests.java
 ```
