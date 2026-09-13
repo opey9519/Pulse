@@ -73,36 +73,68 @@ curl -X POST http://localhost:8080/api/logs \
 
 ## Getting started
 
-Prerequisites: JDK 21+, Docker (for Kafka and PostgreSQL). The Maven wrapper
-(`./mvnw`) is included, so no separate Maven install is required.
+Prerequisites: Docker. Kafka, PostgreSQL, the API, and the log generator all run
+through the root-level `docker-compose.yml`. For local development outside
+Docker, a JDK 21+ and the included Maven wrapper (`./mvnw`) are used instead.
+
+### Run everything
 
 ```bash
-# 1. Start Kafka and PostgreSQL
-docker compose up -d
+# 1. Build and start all services (kafka, postgres, api, loggenerator)
+docker compose up --build
 
-# 2. Run the application (starts on http://localhost:8080)
-./mvnw spring-boot:run
-
-# 3. Verify
+# 2. Verify the API
 curl http://localhost:8080/api/health
 
-# 4. Send a log
-curl -X POST http://localhost:8080/api/logs \
-  -H "Content-Type: application/json" \
-  -d '{"service":"demo","level":"ERROR","message":"hello pulse","latencyMs":10,"timestamp":"2026-09-07T12:00:00Z"}'
-
-# 5. Confirm it landed in PostgreSQL
+# 3. Confirm logs landed in PostgreSQL
 docker exec pulse-postgres psql -U pulse -d pulse \
   -c "SELECT id, service, level, message, timestamp FROM logs;"
 ```
 
-Both services must be up before the app starts: it connects to Kafka for the
-consumers and to PostgreSQL at startup (`ddl-auto=update`).
+`docker compose up` also starts `loggenerator`, which POSTs a batch of synthetic
+logs to the API and then exits. Watch its progress with:
+
+```bash
+docker logs -f pulse-loggenerator
+```
+
+To run the generator manually, e.g. with 500 events at 50/sec:
+
+```bash
+docker compose run --rm --replace loggenerator \
+  -e EVENTS=500 -e RATE=50
+```
+
+### Run the API locally (development)
+
+```bash
+# 1. Start only Kafka and PostgreSQL
+docker compose up -d kafka postgres
+
+# 2. Add a hosts alias so the local app can resolve the broker hostname
+#    (Kafka advertises itself as kafka:9092 on the compose network):
+#    /etc/hosts:  127.0.0.1  kafka
+
+# 3. Run the application (starts on http://localhost:8080)
+cd pulse
+./mvnw spring-boot:run
+```
+
+The infra services must be healthy before the app starts: it connects to Kafka
+for the consumers and to PostgreSQL at startup (`ddl-auto=update`).
+
+### Send a log by hand
+
+```bash
+curl -X POST http://localhost:8080/api/logs \
+  -H "Content-Type: application/json" \
+  -d '{"service":"demo","level":"ERROR","message":"hello pulse","latencyMs":10,"timestamp":"2026-09-07T12:00:00Z"}'
+```
 
 ## Configuration
 
 Service connection settings live in
-`src/main/resources/application.properties`:
+`src/main/resources/application.properties` (used for local runs):
 
 ```properties
 # Kafka
@@ -120,11 +152,18 @@ spring.datasource.password=pulse
 spring.jpa.hibernate.ddl-auto=update
 ```
 
-Infrastructure is defined in `docker-compose.yml`:
+Infrastructure and services are defined in the root `docker-compose.yml`:
 
-- **Kafka** — single-node KRaft broker, port `9092`
+- **Kafka** — single-node KRaft broker, port `9092`. Advertises
+  `PLAINTEXT://kafka:9092` so containers reach it over the compose network;
+  host access to the broker is via `docker exec` commands.
 - **PostgreSQL 17** — database `pulse`, user/password `pulse`/`pulse`,
   exposed on host port **5435**
+- **api** — the Spring Boot app, host port `8080`. Connections are injected via
+  `SPRING_KAFKA_BOOTSTRAP_SERVERS` and `SPRING_DATASOURCE_*` environment
+  variables (overriding the localhost values above).
+- **loggenerator** — runs a batch of synthetic logs against the API, then exits.
+  Uses `PULSE_URL` (default `http://localhost:8080`), `EVENTS`, and `RATE`.
 
 ## Data model
 
@@ -137,7 +176,7 @@ Infrastructure is defined in `docker-compose.yml`:
 
 ```
 pulse/
-├── docker-compose.yml
+├── Dockerfile
 ├── pom.xml
 └── src/
     ├── main/
@@ -151,13 +190,24 @@ pulse/
     │   │   └── service/{LogProducer,LatencyMetricService}.java
     │   └── resources/application.properties
     └── test/java/com/pulse/PulseApplicationTests.java
+
+loggenerator/
+├── Dockerfile
+├── pom.xml
+└── src/main/java/com/loggenerator/
+    ├── Main.java
+    └── generator/LogGenerator.java
 ```
+
+The root `docker-compose.yml` orchestrates `kafka`, `postgres`, `api` (built
+from `pulse/`), and `loggenerator`.
 
 ## Testing
 
 ```bash
-docker compose up -d        # Kafka + PostgreSQL must be running
-./mvnw test
+docker compose up -d kafka postgres   # Kafka + PostgreSQL must be running
+./mvnw test                           # localhost runs also need the /etc/hosts
+                                      # alias above (127.0.0.1 kafka)
 ```
 
 The Spring Boot context boots the consumers and JPA, so it connects to both
