@@ -11,8 +11,9 @@ import java.util.Random;
 
 public class LogGenerator {
 
-    // Local backend API endpoint
-    private static final String API_URL = "http://localhost:8080/api/logs";
+    // Local backend API endpoint (PULSE_URL can override, e.g. http://api:8080 in compose)
+    private static final String API_URL =
+            System.getenv().getOrDefault("PULSE_URL", "http://localhost:8080") + "/api/logs";
 
     // Available services expected
     private static final String[] SERVICES = {
